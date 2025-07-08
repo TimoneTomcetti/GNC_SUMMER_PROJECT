@@ -29,9 +29,16 @@ def test_simulation_clock_to_julian():
 
     assert abs(jd_rel - expected_jd) < 1e-9
 
-def test_call_method_alias():
-    start = datetime(2025, 7, 7, 12, 0, 0)
-    clock = SimulationClock(start)
+def test_simulation_clock_advance_and_properties():
+    start_time = datetime(2022, 6, 1, 0, 0, 0)
+    clock = SimulationClock(start_time)
 
-    t_rel = 3600
-    assert clock(t_rel) == clock.to_utc(t_rel)
+    assert clock.t_rel == 0.0
+    assert clock.t_utc == start_time
+    assert abs(clock.t_jd - datetime_to_julian(start_time)) < 1e-6
+
+    clock.advance(9000)
+
+    assert clock.t_rel == 9000
+    assert clock.t_utc == start_time + timedelta(seconds=9000)
+    assert abs(clock.t_jd - datetime_to_julian(start_time + timedelta(seconds=9000))) < 1e-6

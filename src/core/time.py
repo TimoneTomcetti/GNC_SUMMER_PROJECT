@@ -45,30 +45,45 @@ def julian_to_datetime(jd: float) -> datetime:
 
 class SimulationClock:
     """
-    Manages absolute (UTC, Julian Date) and relative (simulation) time conversions.
+    Manages simulation time by tracking both relative time and its
+    corresponding absolute representations (UTC, Julian Date).
 
-    This utility helps maintain consistency between wall-clock time (e.g., from TLEs or logs)
-    and relative simulation time (e.g., t = 0 at simulation start).
+    This utility allows consistent progression of time during a simulation,
+    and conversion between different time formats.
 
     Attributes
     ----------
     start_time : datetime
-        UTC datetime at which the simulation starts.
+        UTC datetime at which the simulation starts (t = 0).
     start_jd : float
         Julian Date corresponding to `start_time`.
+    current_time_rel : float
+        Current simulation time in seconds since start.
     """
 
-    def __init__(self, start_time: datetime):
+    def __init__(self, start_time_utc: datetime):
         """
-        Initializes the clock with a given simulation start time.
+        Initializes the simulation clock.
 
         Parameters
         ----------
-        start_time : datetime
-            UTC time corresponding to t = 0 in the simulation.
+        start_time_utc : datetime
+            UTC time corresponding to the simulation start (t = 0).
         """
-        self.start_time = start_time
-        self.start_jd = datetime_to_julian(start_time)
+        self.start_time = start_time_utc
+        self.start_jd = datetime_to_julian(start_time_utc)
+        self.current_time_rel = 0.0
+
+    def advance(self, dt: float):
+        """
+        Advances the simulation clock by a given time step.
+
+        Parameters
+        ----------
+        dt : float
+            Time step in seconds to advance the simulation time.
+        """
+        self.current_time_rel += dt
 
     def to_utc(self, t_rel: float) -> datetime:
         """
@@ -118,20 +133,38 @@ class SimulationClock:
         """
         return (utc_time - self.start_time).total_seconds()
 
-    def __call__(self, t_rel: float) -> datetime:
+    @property
+    def t_rel(self):
         """
-        Enables the object to be called like a function to return UTC time.
+        Returns the current simulation time (seconds since start).
 
-        Equivalent to calling `to_utc()`.
+        Returns
+        -------
+        float
+            Current simulation time in seconds.
+        """
+        return self.current_time_rel
 
-        Parameters
-        ----------
-        t_rel : float
-            Relative simulation time in seconds.
+    @property
+    def t_utc(self):
+        """
+        Returns the current UTC time based on the simulation clock.
 
         Returns
         -------
         datetime
-            Corresponding UTC time.
+            Current UTC time.
         """
-        return self.to_utc(t_rel)
+        return self.to_utc(self.current_time_rel)
+
+    @property
+    def t_jd(self):
+        """
+        Returns the current Julian Date based on the simulation clock.
+
+        Returns
+        -------
+        float
+            Current Julian Date.
+        """
+        return self.to_julian(self.current_time_rel)
